@@ -29,13 +29,20 @@ const client = new MongoClient(uri, {
 
 
 //middlewares
-const logger = async(req,res,next) => {
-    console.log('called:', req.host, req.originalUrl)
+//recap
+const logger = (req, res, next) =>{
+    console.log('log: info', req.method, req.url);
     next();
 }
 
+
+// const logger = async(req,res,next) => {
+//     console.log('called:', req.host, req.originalUrl)
+//     next();
+// }
+
 const verifyToken = async(req,res,next) =>{
-    const token = req.cookies?.token;
+    const token = req?.cookies?.token;
 //     console.log('value of token in middleware',token)
     if (!token) {
         return res.status(401).send({ message: 'unauthorized access' })
@@ -65,7 +72,7 @@ async function run() {
     //auth related API
     app.post('/jwt',logger, async(req,res)=>{
         const user = req.body;
-        console.log(user);
+        console.log('user for token',user);
         const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'});
 
         res
@@ -74,6 +81,13 @@ async function run() {
             secure:false,
         })
         .send({success:true})
+    })
+
+    //logout
+    app.post('/logout', async (req, res) => {
+        const user = req.body;
+        console.log('logging out', user);
+        res.clearCookie('token', { maxAge: 0 }).send({ success: true })
     })
 
 
@@ -103,12 +117,20 @@ async function run() {
 
     app.get('/bookings',logger,verifyToken, async(req,res)=>{
         console.log(req.query.email);
-        // console.log('tokkkkkkkeeeeennnnnn',req.cookies.token)
-        console.log('user in the valid token',req.user)
+            console.log('token owner info', req.user)
+            if(req.user.email !== req.query.email){
+                return res.status(403).send({message: 'forbidden access'})
+            }
 
-        if(req.query.email !== req.user.email){
-            return res.status(403).send({message: 'forbidden access'})
-        }
+
+
+
+        // console.log('tokkkkkkkeeeeennnnnn',req.cookies.token)
+        // console.log('user in the valid token',req.user)
+
+        // if(req.query.email !== req.user.email){
+        //     return res.status(403).send({message: 'forbidden access'})
+        // }
 
 
         let query = {};
