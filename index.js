@@ -9,7 +9,11 @@ const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors({
-    origin:['http://localhost:5173'],
+    origin:[
+        // 'https://car-doctor-84dd9.web.app',
+        // 'https://car-doctor-84dd9.firebaseapp.com'
+        'http://localhost:5173',
+    ],
     credentials:true
 }));
 app.use(express.json());
@@ -29,7 +33,7 @@ const client = new MongoClient(uri, {
 
 
 //middlewares
-//recap
+
 const logger = (req, res, next) =>{
     console.log('log: info', req.method, req.url);
     next();
@@ -94,12 +98,24 @@ async function run() {
 
     //services related API
     app.get('/services',logger,  async (req, res) => {
-        const cursor = serviceCollection.find();
+        //sort
+        const filter = req.query;
+        console.log(filter);
+        const query ={
+            title: {$regex: filter.search, $options: 'i'}
+        };
+        const options = {
+            sort: {
+                price: filter.sort === 'asc' ? 1 : -1
+            }
+        };
+
+        const cursor = serviceCollection.find(query, options);
         const result = await cursor.toArray();
         res.send(result);
     })
 
-    // load single service data(59-3)
+    // load single service data
     app.get('/services/:id', async (req, res) => {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) }
